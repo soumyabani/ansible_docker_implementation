@@ -1,0 +1,13 @@
+- name: Deploy Ansible and Docker
+  hosts: myservers
+  become: yes
+  vars:
+    app_container_name: myapp
+    nginx_container_name: mynginx
+    docker_network_name: mynetwork
+    management_dir: /management
+
+  roles:
+    - docker_setup
+    - app_container
+    - nginx_container

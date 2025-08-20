@@ -1,0 +1,27 @@
+- name: Create app directory
+  file:
+    path: /opt/app
+    state: directory
+    mode: '0755'
+
+- name: Copy app.py
+  template:
+    src: app.py.j2
+    dest: /opt/app/app.py
+
+- name: Build and run app container
+  docker_container:
+    name: "{{ app_container_name }}"
+    image: "python:3.11-slim" 
+    command: >
+      sh -c "pip install flask && python /opt/app/app.py"
+    state: started
+    restart_policy: always
+    networks:
+      - name: "{{ docker_network_name }}"
+    volumes:
+      - /opt/app/app.py:/opt/app/app.py
+    ports:   
+      - "5000:5000"
+    env:
+      HOSTNAME: "{{ inventory_hostname }}"

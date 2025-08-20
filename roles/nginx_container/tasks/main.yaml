@@ -1,0 +1,52 @@
+- name: create directory /opt/nginx 
+  file:
+    path: /opt/nginx
+    state: directory
+    mode: '0755'
+
+- name: Copy NGINX template
+  template:
+    src: nginx.conf.j2
+    dest: /opt/nginx/nginx.conf
+
+- name: Ensure local certs directory exists
+  file:
+    path: /opt/nginx/certs
+    state: directory
+    mode: '0755'
+
+- name: Generate self-signed certificates if missing
+  command: >
+    openssl req -x509 -nodes -days 365
+    -newkey rsa:2048
+    -keyout {{ management_dir }}/certs/key.pem
+    -out {{ management_dir }}/certs/fullchain.pem
+    -subj "/C=IN/ST=State/L=City/O=Org/OU=Unit/CN=example.com"
+  args:
+    creates: "{{ management_dir }}/certs/fullchain.pem"
+
+- name: Copy certificates to remote host
+  copy:
+    src: "{{ item }}"
+    dest: /opt/nginx/certs/
+    owner: root
+    group: root
+    mode: '0644'
+    remote_src: yes
+  loop:
+    - "{{ management_dir }}/certs/fullchain.pem"
+    - "{{ management_dir }}/certs/key.pem"
+
+- name: Run NGINX container
+  docker_container:
+    name: "{{ nginx_container_name }}"
+    image: nginx:latest
+    state: started
+    restart_policy: always
+    networks:
+      - name: "{{ docker_network_name }}"
+    ports:
+      - "8001:8001"
+    volumes:
+      - /opt/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /opt/nginx/certs:/etc/nginx/certs:ro

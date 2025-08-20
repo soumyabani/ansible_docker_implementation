@@ -1,0 +1,20 @@
+worker_processes 1;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+server {
+    listen 8001 ssl;
+
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/key.pem;
+
+    location /fun/ {
+        proxy_pass http://{{ app_container_name }}:5000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+}
